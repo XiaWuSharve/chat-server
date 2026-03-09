@@ -4,6 +4,6 @@ func Fatal(err error) {
 
 }
 
-func Info(info string) {
+func Info(pattern string, value ...any) {
 
 }

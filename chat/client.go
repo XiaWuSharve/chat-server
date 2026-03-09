@@ -9,8 +9,10 @@ import (
 )
 
 type Client struct {
-	id   string
-	conn *websocket.Conn
+	id      string
+	conn    *websocket.Conn
+	send    chan any
+	receive chan any
 }
 
 var upgrader = websocket.Upgrader{
@@ -22,7 +24,7 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func NewClient(ctx *gin.Context, id string) (*Client, error) {
+func NewClient(ctx *gin.Context, id string, bufSize int) (*Client, error) {
 
 	conn, err := upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
 	if err != nil {
@@ -30,8 +32,10 @@ func NewClient(ctx *gin.Context, id string) (*Client, error) {
 	}
 
 	c := &Client{
-		id:   id,
-		conn: conn,
+		id:      id,
+		conn:    conn,
+		send:    make(chan any, bufSize),
+		receive: make(chan any, bufSize),
 	}
 
 	Register(c)
@@ -42,10 +46,24 @@ func NewClient(ctx *gin.Context, id string) (*Client, error) {
 	return c, nil
 }
 
+func (c *Client) handleRead() {
+
+}
+
+func (c *Client) handleWrite() {
+	for {
+		select {
+		// case m := <-c.send:
+
+		}
+	}
+}
+
 func (c *Client) Read() {
+	// mess := <-c.receive
 
 }
 
 func (c *Client) Write(mess any) {
-
+	c.send <- mess
 }

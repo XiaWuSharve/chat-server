@@ -24,9 +24,18 @@ type MysqlConfig struct {
 	Database string `toml:"database"`
 }
 
+type RedisConfig struct {
+	Host     string        `toml:"host"`
+	Port     int           `toml:"port"`
+	Password string        `toml:"password"`
+	Db       int           `toml:"db"`
+	Expire   time.Duration `toml:"expire"` // in minute
+}
+
 type Config struct {
 	KafkaConfig *KafkaConfig `toml:"kafka"`
 	MysqlConfig *MysqlConfig `toml:"mysql"`
+	RedisConfig *RedisConfig `toml:"redis"`
 }
 
 var config = &Config{
@@ -43,6 +52,13 @@ var config = &Config{
 		Host:     "127.0.0.1",
 		Port:     3306,
 		Database: "sharve",
+	},
+	RedisConfig: &RedisConfig{
+		Host:     "127.0.0.1",
+		Port:     6379,
+		Password: "",
+		Db:       0,
+		Expire:   1440,
 	},
 }
 

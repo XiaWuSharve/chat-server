@@ -17,7 +17,7 @@ func Start() {
 	go func() {
 		ctx := context.Background()
 		for {
-			req, err := ReceiveMessage(ctx)
+			req, err := KafkaReceiveMessage(ctx)
 			if err != nil {
 				zlog.Fatal(err)
 			}
@@ -26,17 +26,21 @@ func Start() {
 			if err := dao.Insert(m); err != nil {
 				zlog.Fatal(err)
 			}
+			// send by websocket
 			go func() {
 				mu.RLock()
-				defer mu.RUnlock()
-				if c, ok := clients[req.ReceiveId]; ok {
+				c, ok := clients[req.ReceiveId]
+				mu.RUnlock()
+				if ok {
 					c.Write(req.Content)
 				}
 			}()
 			// write to redis
-			go func ()  {
-				
-			}
+			go func() {
+				if err := RedisAddPrivateMessage(ctx, helper.Message2RedisMessage(m)); err != nil {
+					zlog.Fatal(err)
+				}
+			}()
 			// TODO: caching reading message and batch store to db
 
 		}
