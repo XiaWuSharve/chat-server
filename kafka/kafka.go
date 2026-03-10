@@ -45,9 +45,9 @@ func Close() error {
 	return nil
 }
 
-func SendMessage(ctx context.Context, mess string) error {
+func SendMessage(ctx context.Context, data []byte) error {
 	return chatWriter.WriteMessages(ctx, kafka.Message{
-		Value: []byte(mess),
+		Value: data,
 	})
 }
 

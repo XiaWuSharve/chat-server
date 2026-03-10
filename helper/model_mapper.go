@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func KafkaRequest2Message(source *dto.KafkaRequest) *model.Message {
+func ChatRequest2Message(source *dto.ChatRequest) *model.Message {
 	return &model.Message{
 		Uuid:       uuid.New().String(),
 		SessionId:  source.SessionId,
@@ -28,8 +28,9 @@ func KafkaRequest2Message(source *dto.KafkaRequest) *model.Message {
 	}
 }
 
-func Message2RedisMessage(source *model.Message) *dto.RedisMessage {
-	return &dto.RedisMessage{
+func Message2ChatResponse(source *model.Message) *dto.ChatResponse {
+	return &dto.ChatResponse{
+		Uuid:       source.Uuid,
 		SendId:     source.SendId,
 		SendName:   source.SendName,
 		SendAvatar: source.SendAvatar,

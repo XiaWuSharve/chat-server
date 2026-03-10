@@ -31,14 +31,13 @@ func get(ctx context.Context, key string) (string, error) {
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
 			zlog.Info("cache miss: %s", key)
-			return "", nil
 		}
 		return "", err
 	}
 	return val, nil
 }
 
-func SetPrivateMessage(ctx context.Context, sendId string, receiveId string, messages []*dto.RedisMessage) error {
+func SetPrivateMessage(ctx context.Context, sendId string, receiveId string, messages []*dto.ChatResponse) error {
 	data, err := json.Marshal(messages)
 	if err != nil {
 		return fmt.Errorf("failed to parse message list from %s to %s: %v", sendId, receiveId, err)
@@ -52,7 +51,7 @@ func SetPrivateMessage(ctx context.Context, sendId string, receiveId string, mes
 	return set(ctx, key, string(data), expire*time.Minute)
 }
 
-func GetPrivateMessage(ctx context.Context, sendId string, receiveId string) ([]*dto.RedisMessage, error) {
+func GetPrivateMessage(ctx context.Context, sendId string, receiveId string) ([]*dto.ChatResponse, error) {
 	var key string
 	if sendId < receiveId {
 		key = fmt.Sprintf("messages:%s:%s", sendId, receiveId)
@@ -61,9 +60,13 @@ func GetPrivateMessage(ctx context.Context, sendId string, receiveId string) ([]
 	}
 	s, err := get(ctx, key)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get key %s: %v", key, err)
+		if errors.Is(redis.Nil, err) {
+			s = "[]"
+		} else {
+			return nil, fmt.Errorf("failed to get key %s: %v", key, err)
+		}
 	}
-	var req []*dto.RedisMessage
+	var req []*dto.ChatResponse
 	if err := json.Unmarshal([]byte(s), &req); err != nil {
 		return nil, fmt.Errorf("failed to parse redis value %s: %v", s, err)
 	}

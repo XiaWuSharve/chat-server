@@ -1,7 +1,11 @@
 package chat
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
+	"kama_chat_server/dto"
+	"kama_chat_server/zlog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -11,8 +15,8 @@ import (
 type Client struct {
 	id      string
 	conn    *websocket.Conn
-	send    chan any
-	receive chan any
+	send    chan *dto.ChatResponse
+	receive chan *dto.ChatRequest
 }
 
 var upgrader = websocket.Upgrader{
@@ -25,7 +29,6 @@ var upgrader = websocket.Upgrader{
 }
 
 func NewClient(ctx *gin.Context, id string, bufSize int) (*Client, error) {
-
 	conn, err := upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to upgrade http to websocket: %v", err)
@@ -34,36 +37,66 @@ func NewClient(ctx *gin.Context, id string, bufSize int) (*Client, error) {
 	c := &Client{
 		id:      id,
 		conn:    conn,
-		send:    make(chan any, bufSize),
-		receive: make(chan any, bufSize),
+		send:    make(chan *dto.ChatResponse, bufSize),
+		receive: make(chan *dto.ChatRequest, bufSize),
 	}
 
 	Register(c)
 
-	// go c.Read()
-	// go c.Write()
+	go func() {
+		if err := c.handleWrite(ctx); err != nil {
+			zlog.Error(err)
+			Unregister(c)
+		}
+	}()
+
+	go func() {
+		if err := c.handleRead(ctx); err != nil {
+			zlog.Error(err)
+			Unregister(c)
+		}
+	}()
 
 	return c, nil
 }
 
-func (c *Client) handleRead() {
-
-}
-
-func (c *Client) handleWrite() {
+func (c *Client) handleRead(ctx context.Context) error {
 	for {
 		select {
-		// case m := <-c.send:
-
+		case <-ctx.Done():
+			return nil
+		default:
+			_, data, err := c.conn.ReadMessage()
+			if err != nil {
+				return fmt.Errorf("failed to read from websocket: %v", err)
+			}
+			var res dto.ChatRequest
+			if err := json.Unmarshal(data, &res); err != nil {
+				zlog.Error(fmt.Errorf("failed to parse data: %v", err))
+				continue
+			}
+			KafkaSendMessage(ctx, &res)
 		}
 	}
 }
 
-func (c *Client) Read() {
-	// mess := <-c.receive
-
+func (c *Client) handleWrite(ctx context.Context) error {
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case m := <-c.send:
+			data, err := json.Marshal(m)
+			if err != nil {
+				return fmt.Errorf("failed to marshal message: %v", err)
+			}
+			if err := c.conn.WriteMessage(websocket.TextMessage, data); err != nil {
+				return fmt.Errorf("failed to write message to websocket: %v", err)
+			}
+		}
+	}
 }
 
-func (c *Client) Write(mess any) {
+func (c *Client) Write(mess *dto.ChatResponse) {
 	c.send <- mess
 }

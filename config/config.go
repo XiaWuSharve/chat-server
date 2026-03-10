@@ -45,6 +45,7 @@ var config = &Config{
 		ChatTopic:   "chat_message",
 		LogoutTopic: "logout",
 		Timeout:     1,
+		Partition:   1,
 	},
 	MysqlConfig: &MysqlConfig{
 		User:     "root",

@@ -1,6 +1,6 @@
 package dto
 
-type KafkaRequest struct {
+type ChatRequest struct {
 	SessionId  string `json:"session_id"`
 	Type       int8   `json:"type"`
 	Content    string `json:"content"`
@@ -18,7 +18,8 @@ type KafkaRequest struct {
 type KafkaResponse struct {
 }
 
-type RedisMessage struct {
+type ChatResponse struct {
+	Uuid       string `json:"uuid"`
 	SendId     string `json:"send_id"`
 	SendName   string `json:"send_name"`
 	SendAvatar string `json:"send_avatar"`

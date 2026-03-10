@@ -9,46 +9,62 @@ import (
 )
 
 var (
-	mu      sync.RWMutex
-	clients map[string]*Client
+	clients     sync.Map
+	ctx, cancel = context.WithCancel(context.Background())
 )
 
 func Start() {
 	go func() {
-		ctx := context.Background()
 		for {
-			req, err := KafkaReceiveMessage(ctx)
-			if err != nil {
-				zlog.Fatal(err)
-			}
-			// write to db
-			m := helper.KafkaRequest2Message(req)
-			if err := dao.Insert(m); err != nil {
-				zlog.Fatal(err)
-			}
-			// send by websocket
-			go func() {
-				mu.RLock()
-				c, ok := clients[req.ReceiveId]
-				mu.RUnlock()
-				if ok {
-					c.Write(req.Content)
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				req, err := KafkaReceiveMessage(ctx)
+				if err != nil {
+					zlog.Error(err)
+					continue
 				}
-			}()
-			// write to redis
-			go func() {
-				if err := RedisAddPrivateMessage(ctx, helper.Message2RedisMessage(m)); err != nil {
-					zlog.Fatal(err)
+				// write to db
+				m := helper.ChatRequest2Message(req)
+				if err := dao.Insert(m); err != nil {
+					zlog.Error(err)
+					continue
 				}
-			}()
-			// TODO: caching reading message and batch store to db
-
+				// send by websocket
+				res := helper.Message2ChatResponse(m)
+				go func() {
+					c, ok := clients.Load(res.ReceiveId)
+					if ok {
+						c.(*Client).Write(res)
+					}
+				}()
+				// write to redis
+				go func() {
+					if err := RedisAddPrivateMessage(ctx, res); err != nil {
+						zlog.Error(err)
+						return
+					}
+				}()
+				// TODO: caching reading message and batch store to db
+			}
 		}
 	}()
 }
 
+func Close() {
+	clients.Range(func(key, value any) bool {
+		Unregister(value.(*Client))
+		return true
+	})
+	cancel()
+}
+
 func Register(c *Client) {
-	mu.Lock()
-	defer mu.Unlock()
-	clients[c.id] = c
+	clients.Store(c.id, c)
+}
+
+func Unregister(c *Client) {
+	c.conn.Close()
+	clients.Delete(c.id)
 }
