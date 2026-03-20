@@ -3,10 +3,14 @@ package chat
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"kama_chat_server/dao"
 	"kama_chat_server/dto"
+	"kama_chat_server/helper"
 	"kama_chat_server/kafka"
 	"kama_chat_server/redis"
+	"kama_chat_server/zlog"
 )
 
 func SendMessage(id string, mess string) {
@@ -47,4 +51,22 @@ func RedisAddPrivateMessage(ctx context.Context, mess *dto.ChatResponse) error {
 		return fmt.Errorf("failed to set a message to redis: %v", err)
 	}
 	return nil
+}
+
+func GetMessageList(ctx context.Context, userOneId, userTwoId string) (message string, rsp []*dto.ChatResponse, ret int) {
+	messages, err := redis.GetPrivateMessage(ctx, userOneId, userTwoId)
+	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			zlog.Error("failed to hit redis for message about %s and %s", userOneId, userTwoId)
+			msgs, err := dao.GetMessageList(userOneId, userTwoId)
+			if err != nil {
+				return "数据库访问失败", nil, -1
+			}
+			// TODO: set to redis
+			messages = helper.BatchOperation(msgs, helper.Message2ChatResponse)
+			return "成功获取消息列表", messages, 0
+		}
+		return "消息列表获取失败", nil, -1
+	}
+	return "成功获取消息列表", messages, 0
 }

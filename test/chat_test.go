@@ -1,44 +1,44 @@
 package mychat
 
 import (
-	"context"
+	"encoding/json"
 	"kama_chat_server/chat"
-	"kama_chat_server/dao"
+	"kama_chat_server/config"
 	"kama_chat_server/dto"
 	"kama_chat_server/helper"
+	"kama_chat_server/https"
 	"kama_chat_server/kafka"
+	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"github.com/stretchr/testify/assert"
 )
 
-func TestKafka(t *testing.T) {
-	kafka.Start()
-	defer kafka.Close()
-	ctx := context.Background()
-	err := kafka.SendMessage(ctx, []byte("hello kafka"))
-	if err != nil {
+func TestGetMessageList(t *testing.T) {
+	os.Chdir("..")
+	config.LoadConfig()
+	route := https.SetupRouter()
+	req, _ := http.NewRequest("GET", "/message?user1=sharve&user2=commie", nil)
+	w := httptest.NewRecorder()
+	route.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Result().StatusCode)
+	s := w.Body.String()
+	var body helper.ControllerJson
+	if err := json.Unmarshal([]byte(s), &body); err != nil {
 		t.Error(err)
 	}
-	data, err := kafka.ReadMessage(ctx)
-	if err != nil {
+	data, _ := json.Marshal(body.Data)
+	var rsp []dto.ChatResponse
+	if err := json.Unmarshal(data, &rsp); err != nil {
 		t.Error(err)
 	}
-	if string(data) != "hello kafka" {
-		t.Errorf("expected %s, got %s", "hello kafka", string(data))
-	}
-}
-
-func TestMysql(t *testing.T) {
-	m := helper.ChatRequest2Message(&dto.ChatRequest{
-		Content: "hello mysql",
-	})
-	if err := dao.Insert(m); err != nil {
-		t.Error(err)
-	}
+	assert.Equal(t, "sharve", rsp[0].SendId)
+	assert.Equal(t, "commie", rsp[0].ReceiveId)
 }
 
 func TestChat(t *testing.T) {

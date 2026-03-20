@@ -8,6 +8,17 @@ import (
 	"github.com/google/uuid"
 )
 
+func BatchOperation[S, T any](source []*S, op func(source *S) *T) []*T {
+	if source == nil {
+		return nil
+	}
+	dst := make([]*T, len(source))
+	for i, v := range source {
+		dst[i] = op(v)
+	}
+	return dst
+}
+
 func ChatRequest2Message(source *dto.ChatRequest) *model.Message {
 	return &model.Message{
 		Uuid:       uuid.New().String(),

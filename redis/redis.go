@@ -15,6 +15,7 @@ import (
 
 var client *redis.Client
 var expire time.Duration
+var Nil = redis.Nil
 
 func init() {
 	cfg := config.GetConfig().RedisConfig
@@ -24,17 +25,6 @@ func init() {
 		DB:       cfg.Db,
 	})
 	expire = cfg.Expire
-}
-
-func get(ctx context.Context, key string) (string, error) {
-	val, err := client.Get(ctx, key).Result()
-	if err != nil {
-		if errors.Is(err, redis.Nil) {
-			zlog.Info("cache miss: %s", key)
-		}
-		return "", err
-	}
-	return val, nil
 }
 
 func SetPrivateMessage(ctx context.Context, sendId string, receiveId string, messages []*dto.ChatResponse) error {
@@ -61,7 +51,7 @@ func GetPrivateMessage(ctx context.Context, sendId string, receiveId string) ([]
 	s, err := get(ctx, key)
 	if err != nil {
 		if errors.Is(redis.Nil, err) {
-			s = "[]"
+			return nil, err
 		} else {
 			return nil, fmt.Errorf("failed to get key %s: %v", key, err)
 		}
@@ -71,6 +61,17 @@ func GetPrivateMessage(ctx context.Context, sendId string, receiveId string) ([]
 		return nil, fmt.Errorf("failed to parse redis value %s: %v", s, err)
 	}
 	return req, nil
+}
+
+func get(ctx context.Context, key string) (string, error) {
+	val, err := client.Get(ctx, key).Result()
+	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			zlog.Info("cache miss: %s", key)
+		}
+		return "", err
+	}
+	return val, nil
 }
 
 func set(ctx context.Context, key string, value string, expire time.Duration) error {

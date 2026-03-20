@@ -18,14 +18,26 @@ func init() {
 	var err error
 	db, err = gorm.Open(mysql.Open(dsn))
 	if err != nil {
-		zlog.Fatal(err)
+		zlog.Fatal("failed to open mysql: %v", err)
 	}
 	if err := db.AutoMigrate(&model.Message{}); err != nil {
-		zlog.Fatal(err)
+		zlog.Fatal("failed to auto migrate: %v", err)
 	}
 }
 
 func Insert(m any) error {
 	tx := db.Create(m)
 	return tx.Error
+}
+
+func GetMessageList(userOneId, userTwoId string) ([]*model.Message, error) {
+	var messages []*model.Message
+	res := db.
+		Where("(send_id = ? AND receive_id = ?) OR (send_id = ? AND receive_id = ?)", userOneId, userTwoId, userTwoId, userOneId).
+		Order("created_at ASC").
+		Find(&messages)
+	if res.Error != nil {
+		return nil, fmt.Errorf("failed to select message list from db: %v", res.Error)
+	}
+	return messages, nil
 }

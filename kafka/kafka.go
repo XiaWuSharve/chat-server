@@ -56,14 +56,14 @@ func ReadMessage(ctx context.Context) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to read message from kafka: %v", err)
 	}
-	zlog.Info(fmt.Sprintf("topic=%s, partition=%d, offset=%d, key=%s, value=%s", m.Topic, m.Partition, m.Offset, m.Key, m.Value))
+	zlog.Info("topic=%s, partition=%d, offset=%d, key=%s, value=%s", m.Topic, m.Partition, m.Offset, m.Key, m.Value)
 	return m.Value, nil
 }
 
 func createTopicIfNotExists(topic string) {
 	conn, err := kafka.Dial("tcp", cfg.Address)
 	if err != nil {
-		zlog.Fatal(fmt.Errorf("failed to connect to kafka: %v", err))
+		zlog.Fatal("failed to connect to kafka: %v", err)
 	}
 	defer conn.Close()
 	err = conn.CreateTopics(kafka.TopicConfig{
@@ -72,6 +72,6 @@ func createTopicIfNotExists(topic string) {
 		ReplicationFactor: 1,
 	})
 	if err != nil {
-		zlog.Fatal(err)
+		zlog.Fatal("failed to create topics: %v", err)
 	}
 }

@@ -1,7 +1,7 @@
 package config
 
 import (
-	"log"
+	"fmt"
 	"time"
 
 	"github.com/BurntSushi/toml"
@@ -32,10 +32,15 @@ type RedisConfig struct {
 	Expire   time.Duration `toml:"expire"` // in minute
 }
 
+type LogConfig struct {
+	LogPath string `toml:"log_path"`
+}
+
 type Config struct {
 	KafkaConfig *KafkaConfig `toml:"kafka"`
 	MysqlConfig *MysqlConfig `toml:"mysql"`
 	RedisConfig *RedisConfig `toml:"redis"`
+	LogConfig   *LogConfig   `toml:"log"`
 }
 
 var config = &Config{
@@ -61,15 +66,19 @@ var config = &Config{
 		Db:       0,
 		Expire:   1440,
 	},
+	LogConfig: &LogConfig{
+		LogPath: "./production.log",
+	},
 }
 
-func init() {
+func LoadConfig() error {
 	_, err := toml.DecodeFile("./configs/config.toml", &config)
-	if err != nil {
-		log.Fatal(err)
-	}
+	return err
 }
 
 func GetConfig() *Config {
+	if config == nil {
+		panic(fmt.Errorf("must LoadConfig first!"))
+	}
 	return config
 }

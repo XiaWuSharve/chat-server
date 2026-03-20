@@ -9,6 +9,7 @@ import (
 )
 
 var (
+	// 重构为channel + 原生map
 	clients     sync.Map
 	ctx, cancel = context.WithCancel(context.Background())
 )
@@ -22,13 +23,13 @@ func Start() {
 			default:
 				req, err := KafkaReceiveMessage(ctx)
 				if err != nil {
-					zlog.Error(err)
+					zlog.Error("failed to receive kafka message: %v", err)
 					continue
 				}
 				// write to db
 				m := helper.ChatRequest2Message(req)
 				if err := dao.Insert(m); err != nil {
-					zlog.Error(err)
+					zlog.Error("failed to insert into db: %v", err)
 					continue
 				}
 				// send by websocket
@@ -42,7 +43,7 @@ func Start() {
 				// write to redis
 				go func() {
 					if err := RedisAddPrivateMessage(ctx, res); err != nil {
-						zlog.Error(err)
+						zlog.Error("failed to add a private message to redis: %v", err)
 						return
 					}
 				}()

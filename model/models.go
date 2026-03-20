@@ -11,6 +11,7 @@ const (
 )
 
 type Message struct {
+	Id         int          `gorm:"column:id;primaryKey;autoIncrement;type:int;comment:Id"`
 	Uuid       string       `gorm:"column:uuid;primaryKey;uniqueIndex;type:char(100);not null;comment:消息uuid"`
 	SessionId  string       `gorm:"column:session_id;index;type:char(20);not null;comment:会话uuid"`
 	Type       int8         `gorm:"column:type;not null;comment:消息类型，0.文本，1.语音，2.文件，3.通话"` // 通话不用存消息内容或者url

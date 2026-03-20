@@ -45,14 +45,14 @@ func NewClient(ctx *gin.Context, id string, bufSize int) (*Client, error) {
 
 	go func() {
 		if err := c.handleWrite(ctx); err != nil {
-			zlog.Error(err)
+			zlog.Error("failed to handle write: %v", err)
 			Unregister(c)
 		}
 	}()
 
 	go func() {
 		if err := c.handleRead(ctx); err != nil {
-			zlog.Error(err)
+			zlog.Error("failed to handle read: %v", err)
 			Unregister(c)
 		}
 	}()
@@ -72,7 +72,7 @@ func (c *Client) handleRead(ctx context.Context) error {
 			}
 			var res dto.ChatRequest
 			if err := json.Unmarshal(data, &res); err != nil {
-				zlog.Error(fmt.Errorf("failed to parse data: %v", err))
+				zlog.Error("failed to parse data: %v", err)
 				continue
 			}
 			KafkaSendMessage(ctx, &res)
