@@ -2,6 +2,7 @@ package chat
 
 import (
 	"context"
+	"fmt"
 	"kama_chat_server/dao"
 	"kama_chat_server/helper"
 	"kama_chat_server/zlog"
@@ -55,7 +56,7 @@ func Start() {
 
 func Close() {
 	clients.Range(func(key, value any) bool {
-		Unregister(value.(*Client))
+		Unregister(value.(*Client).id)
 		return true
 	})
 	cancel()
@@ -65,7 +66,14 @@ func Register(c *Client) {
 	clients.Store(c.id, c)
 }
 
-func Unregister(c *Client) {
+func Unregister(id string) error {
+	v, ok := clients.Load(id)
+	if !ok {
+		return fmt.Errorf("client not found: %s", id)
+	}
+	c := v.(*Client)
 	c.conn.Close()
-	clients.Delete(c.id)
+	c.cancel()
+	clients.Delete(id)
+	return nil
 }

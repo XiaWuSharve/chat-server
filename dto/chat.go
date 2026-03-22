@@ -32,9 +32,3 @@ type ChatResponse struct {
 	FileSize   string `json:"file_size"`
 	CreatedAt  string `json:"created_at"` // 先用CreatedAt排序，后面考虑改成SentAt
 }
-
-type ClientRequest struct {
-}
-
-type ClientResponse struct {
-}

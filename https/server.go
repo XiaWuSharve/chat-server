@@ -2,6 +2,7 @@ package https
 
 import (
 	"kama_chat_server/chat/controller"
+	"kama_chat_server/jwt"
 
 	"github.com/gin-gonic/gin"
 )
@@ -9,7 +10,10 @@ import (
 var ge = gin.Default()
 
 func SetupRouter() *gin.Engine {
-	ge.GET("/message", controller.GetMessageList)
+	api := ge.Group("/api")
+	api.Use(jwt.Middleware)
+	api.GET("/message", controller.GetMessageList)
+	api.GET("/message/group", controller.GetGroupMessageList)
 	return ge
 }
 

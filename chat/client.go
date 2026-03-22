@@ -17,6 +17,7 @@ type Client struct {
 	conn    *websocket.Conn
 	send    chan *dto.ChatResponse
 	receive chan *dto.ChatRequest
+	cancel  context.CancelFunc
 }
 
 var upgrader = websocket.Upgrader{
@@ -42,18 +43,19 @@ func NewClient(ctx *gin.Context, id string, bufSize int) (*Client, error) {
 	}
 
 	Register(c)
-
+	cancelCtx, cancel := context.WithCancel(context.Background())
+	c.cancel = cancel
 	go func() {
-		if err := c.handleWrite(ctx); err != nil {
+		if err := c.handleWrite(cancelCtx); err != nil {
 			zlog.Error("failed to handle write: %v", err)
-			Unregister(c)
+			Unregister(c.id)
 		}
 	}()
 
 	go func() {
-		if err := c.handleRead(ctx); err != nil {
+		if err := c.handleRead(cancelCtx); err != nil {
 			zlog.Error("failed to handle read: %v", err)
-			Unregister(c)
+			Unregister(c.id)
 		}
 	}()
 

@@ -63,6 +63,32 @@ func GetPrivateMessage(ctx context.Context, sendId string, receiveId string) ([]
 	return req, nil
 }
 
+func SetGroupMessage(ctx context.Context, groupId string, messages []*dto.ChatResponse) error {
+	data, err := json.Marshal(messages)
+	if err != nil {
+		return fmt.Errorf("failed to parse message list for group %s: %v", groupId, err)
+	}
+	key := fmt.Sprintf("group_messages:%s", groupId)
+	return set(ctx, key, string(data), expire*time.Minute)
+}
+
+func GetGroupMessage(ctx context.Context, groupId string) ([]*dto.ChatResponse, error) {
+	key := fmt.Sprintf("group_messages:%s", groupId)
+	s, err := get(ctx, key)
+	if err != nil {
+		if errors.Is(redis.Nil, err) {
+			return nil, err
+		} else {
+			return nil, fmt.Errorf("failed to get key %s: %v", key, err)
+		}
+	}
+	var req []*dto.ChatResponse
+	if err := json.Unmarshal([]byte(s), &req); err != nil {
+		return nil, fmt.Errorf("failed to parse redis value %s: %v", s, err)
+	}
+	return req, nil
+}
+
 func get(ctx context.Context, key string) (string, error) {
 	val, err := client.Get(ctx, key).Result()
 	if err != nil {

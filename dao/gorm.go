@@ -41,3 +41,15 @@ func GetMessageList(userOneId, userTwoId string) ([]*model.Message, error) {
 	}
 	return messages, nil
 }
+
+func GetGroupMessageList(groupId string) ([]*model.Message, error) {
+	var messages []*model.Message
+	res := db.
+		Where("receive_id = ?", groupId).
+		Order("created_at ASC").
+		Find(&messages)
+	if res.Error != nil {
+		return nil, fmt.Errorf("failed to select group message list from db: %v", res.Error)
+	}
+	return messages, nil
+}

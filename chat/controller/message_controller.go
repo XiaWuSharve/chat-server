@@ -18,3 +18,13 @@ func GetMessageList(c *gin.Context) {
 	msg, rsp, ret := chat.GetMessageList(c, req.UserOneId, req.UserTwoId)
 	helper.JsonBack(c, msg, ret, rsp)
 }
+
+func GetGroupMessageList(c *gin.Context) {
+	var req dto.GetGroupMessageListReqDto
+	if err := c.ShouldBindQuery(&req); err != nil {
+		helper.JsonBack(c, "", enum.RET_BAD_REQUEST, nil)
+		return
+	}
+	msg, rsp, ret := chat.GetGroupMessageList(c, req.GroupId)
+	helper.JsonBack(c, msg, ret, rsp)
+}

@@ -13,7 +13,7 @@ type ControllerJson struct {
 	Data    any    `json:"data"`
 }
 
-func JsonBack(ctx *gin.Context, message string, ret int, json any) {
+func JsonBack(ctx *gin.Context, message string, ret int, data any) {
 	switch ret {
 	case enum.RET_BAD_REQUEST:
 		if message == "" {
@@ -22,19 +22,19 @@ func JsonBack(ctx *gin.Context, message string, ret int, json any) {
 		ctx.JSON(http.StatusBadRequest, &ControllerJson{
 			Message: message,
 			ret:     ret,
-			Data:    json,
+			Data:    data,
 		})
 	case enum.RET_OK:
 		ctx.JSON(http.StatusOK, &ControllerJson{
 			Message: message,
 			ret:     ret,
-			Data:    json,
+			Data:    data,
 		})
 	case enum.RET_SYSTEM_ERR:
 		ctx.JSON(http.StatusOK, &ControllerJson{
 			Message: message,
 			ret:     ret,
-			Data:    json,
+			Data:    data,
 		})
 	}
 }

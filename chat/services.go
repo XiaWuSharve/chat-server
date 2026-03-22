@@ -62,8 +62,30 @@ func GetMessageList(ctx context.Context, userOneId, userTwoId string) (message s
 			if err != nil {
 				return "数据库访问失败", nil, -1
 			}
-			// TODO: set to redis
 			messages = helper.BatchOperation(msgs, helper.Message2ChatResponse)
+			if err := redis.SetPrivateMessage(ctx, userOneId, userTwoId, messages); err != nil {
+				zlog.Error("failed to set redis for message about %s and %s", userOneId, userTwoId)
+			}
+			return "成功获取消息列表", messages, 0
+		}
+		return "消息列表获取失败", nil, -1
+	}
+	return "成功获取消息列表", messages, 0
+}
+
+func GetGroupMessageList(ctx context.Context, groupId string) (message string, rsp []*dto.ChatResponse, ret int) {
+	messages, err := redis.GetGroupMessage(ctx, groupId)
+	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			zlog.Error("failed to hit redis for message in group %s", groupId)
+			msgs, err := dao.GetGroupMessageList(groupId)
+			if err != nil {
+				return "数据库访问失败", nil, -1
+			}
+			messages = helper.BatchOperation(msgs, helper.Message2ChatResponse)
+			if err := redis.SetGroupMessage(ctx, groupId, messages); err != nil {
+				zlog.Error("failed to set redis for message in group %s", groupId)
+			}
 			return "成功获取消息列表", messages, 0
 		}
 		return "消息列表获取失败", nil, -1
